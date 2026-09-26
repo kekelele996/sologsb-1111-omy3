@@ -1,9 +1,15 @@
 import { db, SCHEMA_VERSION } from './db';
+import { buildHandoverReport, summarizeForBackup, HANDOVER_RULE_VERSION, type HandoverBackupEntry } from './handover';
 
 export interface BackupPayload {
   app: string;
   schemaVersion: number;
   exportedAt: string;
+  /** 交接体检快照：规则版本 + 逐孔结论（导出时即时计算，便于交接追溯） */
+  handover: {
+    ruleVersion: string;
+    holes: HandoverBackupEntry[];
+  };
   holes: unknown[];
   runs: unknown[];
   boxes: unknown[];
@@ -22,6 +28,10 @@ export async function buildBackup(): Promise<BackupPayload> {
     app: 'gbdrillcore',
     schemaVersion: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
+    handover: {
+      ruleVersion: HANDOVER_RULE_VERSION,
+      holes: summarizeForBackup(buildHandoverReport(holes, runs, boxes, lithos)),
+    },
     holes,
     runs,
     boxes,

@@ -24,7 +24,7 @@ docker compose down
 | 框架 | React 18 + TypeScript |
 | 构建 | Vite 6（`npm run build` 含 `tsc --noEmit` 类型检查） |
 | UI | Ant Design 5 + @ant-design/icons |
-| 路由 | React Router 6（5 条业务路由 + 404） |
+| 路由 | React Router 6（6 条业务路由 + 404） |
 | 状态 | Zustand（holeStore / runStore / boxStore / lithoStore） |
 | 存储 | IndexedDB（Dexie，库名 `gbdrillcore-db`） |
 | 托管 | nginx:alpine（多阶段构建，SPA try_files + gzip） |
@@ -49,13 +49,13 @@ npm run build    # 类型检查 + 生产构建
 │   ├── nginx.conf             # try_files SPA 回退 + gzip
 │   ├── public/favicon.svg
 │   └── src/
-│       ├── types/             # drill-hole / drill-run / core-box / litho-log
+│       ├── types/             # drill-hole / drill-run / core-box / litho-log / handover
 │       ├── stores/            # holeStore / runStore / boxStore / lithoStore
 │       ├── components/common/ # DepthRangeInput / RecoveryBadge / BoxGrid / LithoColumn / StatBadge / FilterBar / EmptyPanel
 │       ├── hooks/             # useHoleFilter / useDepthCalc
-│       ├── pages/             # HoleBoard / HoleList / RunLog / CoreBoxList / LithoEditor
+│       ├── pages/             # HoleBoard / HoleList / RunLog / CoreBoxList / LithoEditor / HandoverCheck
 │       ├── router/index.tsx   # 路由表
-│       └── utils/             # recovery.ts / db.ts / export.ts（+ seed.ts / id.ts）
+│       └── utils/             # recovery.ts / handover.ts / db.ts / export.ts（+ seed.ts / id.ts）
 ```
 
 ## 功能与路由
@@ -67,6 +67,15 @@ npm run build    # 类型检查 + 生产构建
 | `/runs` | 回次记录 | 起止深度自动算进尺与采取率，低于 75% 立即标红并入异常清单 |
 | `/boxes` | 岩芯箱编目 | 格位网格按深度填充、破损格标记、装箱深度连续性与格位容量校验 |
 | `/lithology` | 岩性编录 | 按深度区间编录岩性/蚀变/矿化/RQD/样品，区间重叠报冲突并高亮，SVG 岩性柱状图 |
+| `/handover` | 交接体检 | 按孔汇总回次覆盖/箱位/采取率/岩性覆盖，给出阻断/待补/可交接结论，可按结论筛选并导出归档 CSV |
+
+## 交接体检判定规则（规则版本 v1.0）
+
+- **阻断**：回次未覆盖已钻深度（断档），或箱位不足（已钻岩芯未装箱 / 单箱格位容量不足）。
+- **待补**：采取率低于 75%（全孔平均或存在异常回次），或岩性编录未覆盖已钻深度。
+- **可交接**：无阻断与待补问题。
+
+记录变化后页面立即重算；归档 CSV 与顶栏「导出备份」JSON 均携带规则版本与逐孔结论，便于交接追溯。
 
 ## 数据存储说明
 
