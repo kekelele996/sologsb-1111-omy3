@@ -94,12 +94,12 @@ export const SEED_HOLES: DrillHole[] = [
   },
 ];
 
-/** 按孔生成回次：5m 一回次，采取率在 62%~98% 之间波动（含低采取率异常回次） */
+/** 按孔生成回次：5m 一回次，采取率在 62%~98% 之间波动（含低采取率异常回次）；skipRuns 用于演示回次断档 */
 function buildRuns(): DrillRun[] {
-  const plan: Array<{ holeId: string; runNoPrefix: string; reached: number; base: number; anomalyRuns: number[] }> = [
-    { holeId: 'hole-001', runNoPrefix: '2401', reached: 155, base: 91, anomalyRuns: [17] },
+  const plan: Array<{ holeId: string; runNoPrefix: string; reached: number; base: number; anomalyRuns: number[]; skipRuns?: number[] }> = [
+    { holeId: 'hole-001', runNoPrefix: '2401', reached: 155, base: 91, anomalyRuns: [] },
     { holeId: 'hole-002', runNoPrefix: '2402', reached: 250, base: 93, anomalyRuns: [12, 33] },
-    { holeId: 'hole-003', runNoPrefix: '2403', reached: 320, base: 88, anomalyRuns: [8, 22, 41] },
+    { holeId: 'hole-003', runNoPrefix: '2403', reached: 320, base: 88, anomalyRuns: [8, 22, 41], skipRuns: [41] },
     { holeId: 'hole-004', runNoPrefix: '2404', reached: 180, base: 95, anomalyRuns: [] },
     { holeId: 'hole-005', runNoPrefix: '2405', reached: 45, base: 90, anomalyRuns: [6] },
   ];
@@ -108,6 +108,7 @@ function buildRuns(): DrillRun[] {
   plan.forEach((item) => {
     const total = Math.floor(item.reached / 5);
     for (let i = 0; i < total; i += 1) {
+      if (item.skipRuns?.includes(i + 1)) continue;
       const fromDepth = Number((i * 5).toFixed(2));
       const toDepth = Number(Math.min((i + 1) * 5, item.reached).toFixed(2));
       const footage = footageOf(fromDepth, toDepth);
@@ -136,15 +137,54 @@ function buildRuns(): DrillRun[] {
 
 export const SEED_RUNS: DrillRun[] = buildRuns();
 
-export const SEED_BOXES: CoreBox[] = [
-  { id: 'box-001', boxNo: 'X-2402-01', holeId: 'hole-002', fromDepth: 0, toDepth: 25, slots: 10, slotLength: 2.5, boxedAt: daysAgo(40), shelfPos: 'A 区 1 架', damagedSlots: [], operator: '高振华' },
-  { id: 'box-002', boxNo: 'X-2402-02', holeId: 'hole-002', fromDepth: 25, toDepth: 50, slots: 10, slotLength: 2.5, boxedAt: daysAgo(39), shelfPos: 'A 区 1 架', damagedSlots: [4], operator: '高振华', remark: '第 4 格岩芯破碎' },
-  { id: 'box-003', boxNo: 'X-2402-03', holeId: 'hole-002', fromDepth: 50, toDepth: 75, slots: 10, slotLength: 2.5, boxedAt: daysAgo(38), shelfPos: 'A 区 2 架', damagedSlots: [], operator: '周明' },
-  { id: 'box-004', boxNo: 'X-2403-01', holeId: 'hole-003', fromDepth: 0, toDepth: 30, slots: 12, slotLength: 2.5, boxedAt: daysAgo(52), shelfPos: 'B 区 1 架', damagedSlots: [], operator: '周明' },
-  { id: 'box-005', boxNo: 'X-2403-02', holeId: 'hole-003', fromDepth: 30, toDepth: 60, slots: 12, slotLength: 2.5, boxedAt: daysAgo(51), shelfPos: 'B 区 1 架', damagedSlots: [7, 8], operator: '周明', remark: '断层破碎带，两格岩芯缺失' },
-  { id: 'box-006', boxNo: 'X-2404-01', holeId: 'hole-004', fromDepth: 0, toDepth: 28, slots: 12, slotLength: 2.5, boxedAt: daysAgo(30), shelfPos: 'B 区 2 架', damagedSlots: [], operator: '赵晓峰' },
-  { id: 'box-007', boxNo: 'X-2401-01', holeId: 'hole-001', fromDepth: 0, toDepth: 26, slots: 11, slotLength: 2.5, boxedAt: daysAgo(22), shelfPos: 'C 区 1 架', damagedSlots: [], operator: '高振华' },
-];
+/** 按孔生成岩芯箱：等长分段覆盖装箱区间；hole-005 只装前半段，用于演示箱位未覆盖（阻断） */
+function buildBoxes(): CoreBox[] {
+  const plan: Array<{
+    holeId: string;
+    prefix: string;
+    coverTo: number;
+    segLen: number;
+    slots: number;
+    slotLength: number;
+    shelf: string;
+    operator: string;
+    damaged?: Record<number, number[]>;
+    remarks?: Record<number, string>;
+  }> = [
+    { holeId: 'hole-001', prefix: '2401', coverTo: 155, segLen: 25, slots: 10, slotLength: 2.5, shelf: 'C 区 1 架', operator: '高振华' },
+    { holeId: 'hole-002', prefix: '2402', coverTo: 250, segLen: 25, slots: 10, slotLength: 2.5, shelf: 'A 区 1 架', operator: '高振华', damaged: { 2: [4] }, remarks: { 2: '第 4 格岩芯破碎' } },
+    { holeId: 'hole-003', prefix: '2403', coverTo: 320, segLen: 30, slots: 12, slotLength: 2.5, shelf: 'B 区 1 架', operator: '周明', damaged: { 2: [7, 8] }, remarks: { 2: '断层破碎带，两格岩芯缺失' } },
+    { holeId: 'hole-004', prefix: '2404', coverTo: 180, segLen: 30, slots: 12, slotLength: 2.5, shelf: 'B 区 2 架', operator: '赵晓峰' },
+    { holeId: 'hole-005', prefix: '2405', coverTo: 22.5, segLen: 22.5, slots: 9, slotLength: 2.5, shelf: 'C 区 1 架', operator: '周明', remarks: { 1: '后半段岩芯尚未装箱' } },
+  ];
+
+  const boxes: CoreBox[] = [];
+  plan.forEach((item, holeIndex) => {
+    const count = Math.ceil(item.coverTo / item.segLen - 0.0001);
+    for (let i = 0; i < count; i += 1) {
+      const seq = i + 1;
+      const fromDepth = Number((i * item.segLen).toFixed(2));
+      const toDepth = Number(Math.min((i + 1) * item.segLen, item.coverTo).toFixed(2));
+      boxes.push({
+        id: `box-${item.prefix}-${String(seq).padStart(3, '0')}`,
+        boxNo: `X-${item.prefix}-${String(seq).padStart(2, '0')}`,
+        holeId: item.holeId,
+        fromDepth,
+        toDepth,
+        slots: item.slots,
+        slotLength: item.slotLength,
+        boxedAt: daysAgo(40 - holeIndex * 3 - i),
+        shelfPos: item.shelf,
+        damagedSlots: item.damaged?.[seq] ?? [],
+        operator: item.operator,
+        remark: item.remarks?.[seq],
+      });
+    }
+  });
+  return boxes;
+}
+
+export const SEED_BOXES: CoreBox[] = buildBoxes();
 
 export const SEED_LITHOS: LithoLog[] = [
   { id: 'litho-001', holeId: 'hole-002', fromDepth: 0, toDepth: 8, lithology: '第四系覆盖层', color: '黄褐色', alteration: '无', mineralization: '无', rqd: 0, sampleNo: '', logger: '陈立', remark: '残坡积层' },
@@ -162,7 +202,7 @@ export const SEED_LITHOS: LithoLog[] = [
   { id: 'litho-013', holeId: 'hole-004', fromDepth: 10, toDepth: 180, lithology: '花岗闪长岩', color: '浅灰白色', alteration: '硅化', mineralization: '磁铁矿', rqd: 86, sampleNo: 'YP-2404-01', logger: '赵晓峰' },
   { id: 'litho-014', holeId: 'hole-001', fromDepth: 0, toDepth: 9, lithology: '第四系覆盖层', color: '黄褐色', alteration: '无', mineralization: '无', rqd: 0, sampleNo: '', logger: '陈立' },
   { id: 'litho-015', holeId: 'hole-001', fromDepth: 9, toDepth: 86, lithology: '花岗闪长岩', color: '灰白色', alteration: '绿泥石化', mineralization: '无', rqd: 84, sampleNo: 'YP-2401-01', logger: '陈立' },
-  { id: 'litho-016', holeId: 'hole-001', fromDepth: 86, toDepth: 155, lithology: '矽卡岩', color: '褐绿色', alteration: '矽卡岩化', mineralization: '黄铜矿', rqd: 69, sampleNo: 'YP-2401-02', logger: '陈立', remark: '主矿化段，与设计见矿层位吻合' },
+  { id: 'litho-016', holeId: 'hole-001', fromDepth: 86, toDepth: 132, lithology: '矽卡岩', color: '褐绿色', alteration: '矽卡岩化', mineralization: '黄铜矿', rqd: 69, sampleNo: 'YP-2401-02', logger: '陈立', remark: '主矿化段，与设计见矿层位吻合；132m 以下待编录' },
   { id: 'litho-017', holeId: 'hole-005', fromDepth: 0, toDepth: 11, lithology: '第四系覆盖层', color: '褐黄色', alteration: '无', mineralization: '无', rqd: 0, sampleNo: '', logger: '吴倩' },
   { id: 'litho-018', holeId: 'hole-005', fromDepth: 11, toDepth: 45, lithology: '花岗闪长岩', color: '灰白色', alteration: '硅化', mineralization: '无', rqd: 87, sampleNo: 'YP-2405-01', logger: '吴倩' },
 ];

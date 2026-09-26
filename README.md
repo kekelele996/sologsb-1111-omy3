@@ -24,7 +24,7 @@ docker compose down
 | 框架 | React 18 + TypeScript |
 | 构建 | Vite 6（`npm run build` 含 `tsc --noEmit` 类型检查） |
 | UI | Ant Design 5 + @ant-design/icons |
-| 路由 | React Router 6（5 条业务路由 + 404） |
+| 路由 | React Router 6（6 条业务路由 + 404） |
 | 状态 | Zustand（holeStore / runStore / boxStore / lithoStore） |
 | 存储 | IndexedDB（Dexie，库名 `gbdrillcore-db`） |
 | 托管 | nginx:alpine（多阶段构建，SPA try_files + gzip） |
@@ -49,13 +49,13 @@ npm run build    # 类型检查 + 生产构建
 │   ├── nginx.conf             # try_files SPA 回退 + gzip
 │   ├── public/favicon.svg
 │   └── src/
-│       ├── types/             # drill-hole / drill-run / core-box / litho-log
+│       ├── types/             # drill-hole / drill-run / core-box / litho-log / handover
 │       ├── stores/            # holeStore / runStore / boxStore / lithoStore
 │       ├── components/common/ # DepthRangeInput / RecoveryBadge / BoxGrid / LithoColumn / StatBadge / FilterBar / EmptyPanel
 │       ├── hooks/             # useHoleFilter / useDepthCalc
-│       ├── pages/             # HoleBoard / HoleList / RunLog / CoreBoxList / LithoEditor
+│       ├── pages/             # HoleBoard / HoleList / RunLog / CoreBoxList / LithoEditor / HandoverBoard
 │       ├── router/index.tsx   # 路由表
-│       └── utils/             # recovery.ts / db.ts / export.ts（+ seed.ts / id.ts）
+│       └── utils/             # recovery.ts / handover.ts（交接体检规则）/ db.ts / export.ts（+ seed.ts / id.ts）
 ```
 
 ## 功能与路由
@@ -67,6 +67,17 @@ npm run build    # 类型检查 + 生产构建
 | `/runs` | 回次记录 | 起止深度自动算进尺与采取率，低于 75% 立即标红并入异常清单 |
 | `/boxes` | 岩芯箱编目 | 格位网格按深度填充、破损格标记、装箱深度连续性与格位容量校验 |
 | `/lithology` | 岩性编录 | 按深度区间编录岩性/蚀变/矿化/RQD/样品，区间重叠报冲突并高亮，SVG 岩性柱状图 |
+| `/handover` | 交接体检 | 按孔汇总「阻断 / 待补 / 可交接」结论，可按结论筛选并导出归档 CSV |
+
+## 交接体检规则（版本 v1.0）
+
+交班前在「交接体检」页按孔自动汇总，任一记录（钻孔 / 回次 / 岩芯箱 / 岩性）变更后即时重算：
+
+- **阻断**：回次未覆盖已钻深度（断档、含无回次），或箱位不足（箱格容量小于箱区间、已钻孔段未装箱）。
+- **待补**：存在采取率低于 75% 的回次，或岩性编录未覆盖已钻深度（岩性空白）。
+- **可交接**：以上检查全部通过。
+
+页面支持按结论筛选、按孔号搜索；「导出归档 CSV」导出当前筛选结果，文件头部与每行均携带规则版本（`HANDOVER_RULE_VERSION`，见 `src/utils/handover.ts`）及每孔结论、阻断原因与待补事项，便于事后追溯。规则口径调整时必须升版。
 
 ## 数据存储说明
 

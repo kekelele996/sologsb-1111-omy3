@@ -79,9 +79,13 @@ export function mergeRanges(ranges: Array<{ from: number; to: number }>): Array<
   return merged;
 }
 
-/** [fromDepth, toDepth] 内未被覆盖的断档区间 */
-export function gapsWithin(fromDepth: number, toDepth: number, runs: DrillRun[]): Array<{ from: number; to: number }> {
-  const merged = mergeRanges(runs.map((run) => ({ from: run.fromDepth, to: run.toDepth })));
+/** [fromDepth, toDepth] 内未被覆盖的断档区间（覆盖源可为回次、岩性段、岩芯箱等任意深度区间） */
+export function gapsWithin(
+  fromDepth: number,
+  toDepth: number,
+  coverRanges: Array<{ fromDepth: number; toDepth: number }>,
+): Array<{ from: number; to: number }> {
+  const merged = mergeRanges(coverRanges.map((r) => ({ from: r.fromDepth, to: r.toDepth })));
   const gaps: Array<{ from: number; to: number }> = [];
   let cursor = fromDepth;
   merged.forEach((range) => {

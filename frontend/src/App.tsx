@@ -7,6 +7,7 @@ import {
   ExperimentOutlined,
   ProfileOutlined,
   BarsOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { seedIfEmpty } from './utils/seed';
@@ -25,6 +26,7 @@ const MENU_ITEMS = [
   { key: '/runs', icon: <BarsOutlined />, label: <Link to="/runs">回次记录</Link> },
   { key: '/boxes', icon: <ProfileOutlined />, label: <Link to="/boxes">岩芯箱</Link> },
   { key: '/lithology', icon: <ExperimentOutlined />, label: <Link to="/lithology">岩性编录</Link> },
+  { key: '/handover', icon: <SafetyCertificateOutlined />, label: <Link to="/handover">交接体检</Link> },
 ];
 
 /** 应用外壳：左侧导航 + 顶部导出备份，负责一次性的本地数据装载 */

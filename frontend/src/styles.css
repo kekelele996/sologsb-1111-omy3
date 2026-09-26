@@ -29,3 +29,12 @@ a {
 .conflict-row > td {
   background: #fff1f0 !important;
 }
+
+/* 交接体检：阻断 / 待补行底色 */
+.handover-row-blocked > td {
+  background: #fff1f0 !important;
+}
+
+.handover-row-pending > td {
+  background: #fffbe6 !important;
+}
